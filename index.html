@@ -1,0 +1,224 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.137.4/examples/js/controls/OrbitControls.js"></script>
+  </head>
+<body>
+  <script>
+      // ページの読み込みを待つ
+      window.addEventListener('DOMContentLoaded', init);
+
+      function init() {
+        // サイズを指定
+        const width = 800
+        const height = 600;
+
+        // レンダラーを作成
+        var renderer = new THREE.WebGLRenderer();
+        document.body.appendChild(renderer.domElement);
+        renderer.setSize(width, height);
+
+        // 背景の色を設定
+        renderer.setClearColor(0x000000);
+
+        // シーンを作成
+        const scene = new THREE.Scene();
+        //フォグ
+        scene.fog = new THREE.Fog(0x000000, 50, 1000);
+
+        // カメラを作成
+        const camera = new THREE.PerspectiveCamera(45, width / height);
+        // カメラの初期座標を設定
+        camera.position.set(-10, 7, 50);
+
+        // カメラコントローラーを作成
+        const controls = new THREE.OrbitControls(camera, document.body); 
+        
+        // 平行光源1
+        var directionalLight1 = new THREE.DirectionalLight(0xffffff);
+        directionalLight1.position.set(10, 10, 10);
+        // シーンに追加
+        scene.add(directionalLight1);
+        // 平行光源2
+        var directionalLight2 = new THREE.DirectionalLight(0x888888);
+        directionalLight2.position.set(-10, 10, -10);
+        // シーンに追加
+        scene.add(directionalLight2);
+        // // 平行光源3
+        // var directionalLight3 = new THREE.DirectionalLight(0x888888);
+        // directionalLight3.position.set(-10, 10, -10);
+        // // シーンに追加
+        // scene.add(directionalLight3);
+
+        // helper
+        const gridHelper = new THREE.GridHelper(2,10); // size, step
+        scene.add(gridHelper);
+        const axisHelper = new THREE.AxisHelper(2); //軸の長さ　X：赤、Y：緑、z：青
+        scene.add(axisHelper);
+
+        //地球テクスチャ
+        var textureLoader = new THREE.TextureLoader();  
+        var earthTexture = textureLoader.load("img/earth.jpg");
+
+        //地球
+        var sphereGeometry = new THREE.SphereGeometry(5, 32);
+        var sphereMaterial = new THREE.MeshPhongMaterial({map: earthTexture});
+        const earth = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        scene.add(earth);
+
+        //巨大惑星テクスチャ
+        var textureLoader = new THREE.TextureLoader();  
+        var planetTexture = textureLoader.load("img/tuki.jpg");
+
+        var planetGeometry = new THREE.SphereGeometry(50, 32);
+        var planetMaterial = new THREE.MeshPhongMaterial({map: planetTexture});
+        const planet = new THREE.Mesh(planetGeometry, planetMaterial);
+        planet.position.set(0, 0, -100);
+        planet.rotation.y += Math.PI / 2;
+        scene.add(planet);
+
+        var sphereGeometry = new THREE.SphereGeometry();
+        var sphereMaterial = new THREE.MeshPhongMaterial();
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        scene.add(sphere);
+
+        //UFO窓
+        var sphereGeometry = new THREE.SphereGeometry(0.7, 32, 5, 0, Math.PI*2, 0, Math.PI/2);
+        var sphereMaterial = new THREE.MeshPhongMaterial({
+          transparent: true,
+          opacity: 0.5,
+          color: '#add8e6'
+        });
+        const ufo_head = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        ufo_head.position.y = 2.1;
+
+        //UFOボディ1
+        var torusGeometry = new THREE.TorusGeometry( 1, 0.3, 3, 100, 6.283185307179586);
+        var torusMaterial = new THREE.MeshBasicMaterial({color: 0xa9a9a9, metal:true});
+        const ufo_body1 = new THREE.Mesh(torusGeometry, torusMaterial );
+        ufo_body1.position.y = 1.85;
+        ufo_body1.rotation.x = Math.PI / 2;
+        scene.add( ufo_body1 );
+
+        //UFOボディ2
+        const geometry = new THREE.CylinderGeometry( 1, 0.5, 0.7, 32 );
+        const material = new THREE.MeshBasicMaterial( {color: 0x808080, metal:true} );
+        const ufo_body2 = new THREE.Mesh( geometry, material );
+        ufo_body2.position.y = 1.65;
+        scene.add( ufo_body2 );
+
+        //宇宙人
+        var textureLoader = new THREE.TextureLoader();  
+        var space_texture = textureLoader.load("img/space1.png");
+        const material1 = new THREE.SpriteMaterial({ map: space_texture});
+        const sprite1 = new THREE.Sprite(material1);
+        sprite1.scale.set(1, 1, 1);
+        sprite1.position.y = 2.05;
+
+        //UFO グループ化
+        const ufo = new THREE.Group();
+        ufo.add(ufo_head, ufo_body1, ufo_body2, sprite1);
+        ufo.position.x = 10;
+
+        var ufos = [];
+        ufos.push(ufo);
+        //UFOをランダムな大きさで30個作成
+        for(var i = 0; i < 30; i++) {
+          const ufo_clone = ufo.clone();
+          var rand = 3 * (Math.random());
+          ufo_clone.scale.set(rand, rand, rand);
+          var x = 60 * (Math.random() - 0.5);
+          var y = 60 * (Math.random() - 0.5);
+          var z = 60 * (Math.random() - 0.5);
+          ufo_clone.position.set(x, y, z);
+          ufos.push(ufo_clone);
+        }
+
+        //ufoを地球の周りを回転させる
+        const ufo_rotation = new THREE.Group();
+        ufo_rotation.add(sphere);
+        ufos.forEach(ufo => {
+          ufo_rotation.add(ufo);
+        });
+        scene.add(ufo_rotation);
+
+        // 隕石テクスチャー読み込み
+        var texture = textureLoader.load("img/stone.jpg");
+        var mat = new THREE.MeshPhongMaterial();
+        mat.map = texture;
+
+        // 隕石バンプマップ読み込み
+        var bump = textureLoader.load("img/stone-bump.jpg");
+        mat.bumpMap = bump;
+        mat.bumpscale = 0.2;
+
+        //隕石1
+        const tetrahedronGeometry1 = new THREE.TetrahedronGeometry(5, 2);
+        const meteoriteMaterial = new THREE.MeshPhongMaterial(mat);
+        const meteorite1 = new THREE.Mesh(tetrahedronGeometry1, meteoriteMaterial);
+        meteorite1.position.set(50, 60, 30);
+        scene.add(meteorite1);
+
+        //隕石2
+        const tetrahedronGeometry2 = new THREE.TetrahedronGeometry(10, 2);
+        const meteorite2 = new THREE.Mesh(tetrahedronGeometry1, meteoriteMaterial);
+        meteorite2.position.set(100, 100, -50);
+        scene.add(meteorite2);
+
+        update();
+
+        // 毎フレーム時に実行されるループイベントです
+        function update() {
+          // レンダリング
+          renderer.render(scene, camera);
+          requestAnimationFrame(update);
+
+          // 地球回転
+          earth.rotation.y += 0.01;
+          earth.rotation.z += 0.01;
+
+          planet.rotation.y += 0.001;
+
+          // UFOを地球を軸に回転
+          ufo_rotation.rotation.y += 0.005;
+
+          // UFOの上下に揺らす
+          ufos.forEach((ufo, index) => {
+            if(index <= ufos.length / 2) {
+              ufo.position.y += Math.sin(Date.now() / 200) / 10;
+            }else {
+              ufo.position.y += Math.sin(Date.now() / 500) / 10;
+            }
+            
+          });
+
+          //隕石1を落とす
+          meteorite1.position.y -= 0.5;
+          meteorite1.position.x -= 0.5;
+          meteorite1.rotation.x += 0.05;
+          if(meteorite1.position.y <= -200) {
+            // meteorite1.position.x = (Math.random() + 1) * 50;
+            // meteorite1.position.y = (Math.random() + 1) * 50;
+            // meteorite1.position.z = (Math.random() - 0.5) * 100;
+            meteorite1.scale.set(Math.random()+1, Math.random()+1);
+            meteorite1.position.set(50, 50, 20);
+          }
+
+          //隕石2を落とす
+          meteorite2.position.y -= 0.3;
+          meteorite2.position.x -= 0.3;
+          meteorite2.rotation.x += 0.05
+          if(meteorite2.position.y <= -200) {
+            // meteorite2.position.x = (Math.random() + 1) * 50;
+            // meteorite2.position.y = (Math.random() + 1) * 50;
+            // meteorite2.position.z = (Math.random() - 0.5) * 100;
+            meteorite2.scale.set(Math.random()+1, Math.random()+1);
+            meteorite2.position.set(100, 100, -50);
+          }
+
+        }
+      }
+    </script>
+</body>
+</html>
